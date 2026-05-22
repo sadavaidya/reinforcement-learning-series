@@ -1,4 +1,4 @@
-"""Plotting helpers for Week 1 experiments."""
+"""Plotting helpers for bandit experiments."""
 
 from __future__ import annotations
 
@@ -8,14 +8,25 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def plot_average_reward(results: dict[float, dict[str, object]], save_path: str | Path | None = None) -> None:
-    """Plot average reward over time for each epsilon."""
+def _format_result_label(label: object) -> str:
+    """Format result labels while preserving Week 1 epsilon labels."""
+    if isinstance(label, (int, float)):
+        return f"epsilon = {label}"
+    return str(label)
+
+
+def plot_average_reward(
+    results: dict[object, dict[str, object]],
+    save_path: str | Path | None = None,
+    title: str = "Average Reward over Time",
+) -> None:
+    """Plot average reward over time for one or more agent results."""
     plt.figure(figsize=(10, 6))
 
-    for epsilon, data in results.items():
-        plt.plot(data["average_rewards"], label=f"epsilon = {epsilon}")
+    for label, data in results.items():
+        plt.plot(data["average_rewards"], label=_format_result_label(label))
 
-    plt.title("Average Reward over Time")
+    plt.title(title)
     plt.xlabel("Steps")
     plt.ylabel("Average Reward")
     plt.legend()
@@ -32,15 +43,20 @@ def plot_average_reward(results: dict[float, dict[str, object]], save_path: str 
 
 
 def plot_optimal_action_percentage(
-    results: dict[float, dict[str, object]], save_path: str | Path | None = None
+    results: dict[object, dict[str, object]],
+    save_path: str | Path | None = None,
+    title: str = "Optimal Action Selection over Time",
 ) -> None:
-    """Plot optimal action selection percentage for each epsilon."""
+    """Plot optimal action selection percentage for one or more agent results."""
     plt.figure(figsize=(10, 6))
 
-    for epsilon, data in results.items():
-        plt.plot(data["optimal_action_percentage"], label=f"epsilon = {epsilon}")
+    for label, data in results.items():
+        plt.plot(
+            data["optimal_action_percentage"],
+            label=_format_result_label(label),
+        )
 
-    plt.title("Optimal Action Selection over Time")
+    plt.title(title)
     plt.xlabel("Steps")
     plt.ylabel("Optimal Action (%)")
     plt.legend()
