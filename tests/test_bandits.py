@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.bandits.agents import EpsilonGreedyAgent, UCBAgent
+from src.bandits.agents import EpsilonGreedyAgent, GradientBanditAgent, UCBAgent
 from src.bandits.environment import TenArmedBandit
 from src.bandits.experiments import (
     run_multiple_agent_experiments,
@@ -184,3 +184,89 @@ def test_multiple_agent_experiments_returns_expected_keys_and_shapes():
     for result in results.values():
         assert result["average_rewards"].shape == (10,)
         assert result["optimal_action_percentage"].shape == (10,)
+
+
+def test_gradient_bandit_initialization():
+    agent = GradientBanditAgent(n_actions=10, alpha=0.1, use_baseline=True, seed=0)
+
+    assert agent.preferences.shape == (10,)
+    assert np.all(agent.preferences == 0.0)
+    assert agent.action_probabilities.shape == (10,)
+    assert np.allclose(agent.action_probabilities, np.full(10, 0.1))
+    assert agent.average_reward == 0.0
+    assert agent.time_step == 0
+
+
+def test_gradient_bandit_softmax_returns_valid_uniform_distribution():
+    agent = GradientBanditAgent(n_actions=4, alpha=0.1, seed=0)
+
+    probabilities = agent._softmax()
+
+    assert np.isclose(probabilities.sum(), 1.0)
+    assert np.all(probabilities >= 0.0)
+    assert np.allclose(probabilities, np.full(4, 0.25))
+
+
+def test_gradient_bandit_select_action_returns_valid_action_and_updates_policy():
+    agent = GradientBanditAgent(n_actions=5, alpha=0.1, seed=0)
+
+    action = agent.select_action()
+
+    assert 0 <= action < agent.n_actions
+    assert np.isclose(agent.action_probabilities.sum(), 1.0)
+    assert np.all(agent.action_probabilities >= 0.0)
+
+
+def test_gradient_bandit_update_with_baseline_changes_preferences_and_tracking():
+    agent = GradientBanditAgent(n_actions=4, alpha=0.1, use_baseline=True, seed=0)
+    action = agent.select_action()
+    old_preferences = agent.preferences.copy()
+
+    agent.update(action=action, reward=2.0)
+
+    assert not np.allclose(agent.preferences, old_preferences)
+    assert np.isclose(agent.average_reward, 2.0)
+    assert agent.time_step == 1
+
+
+def test_gradient_bandit_update_without_baseline_changes_preferences_and_tracking():
+    agent = GradientBanditAgent(n_actions=4, alpha=0.1, use_baseline=False, seed=0)
+    action = agent.select_action()
+    old_preferences = agent.preferences.copy()
+
+    agent.update(action=action, reward=1.5)
+
+    assert not np.allclose(agent.preferences, old_preferences)
+    assert np.isclose(agent.average_reward, 1.5)
+    assert agent.time_step == 1
+
+
+def test_multiple_agent_experiments_supports_gradient_bandits():
+    agent_configs = {
+        "Gradient bandit α=0.1 with baseline": {
+            "agent_class": GradientBanditAgent,
+            "agent_kwargs": {"alpha": 0.1, "use_baseline": True},
+        },
+        "Gradient bandit α=0.1 without baseline": {
+            "agent_class": GradientBanditAgent,
+            "agent_kwargs": {"alpha": 0.1, "use_baseline": False},
+        },
+    }
+
+    results = run_multiple_agent_experiments(
+        agent_configs=agent_configs,
+        n_runs=3,
+        n_steps=5,
+        n_actions=10,
+        bandit_kwargs={
+            "true_reward_mean": 4.0,
+            "true_reward_std": 1.0,
+            "reward_std": 1.0,
+        },
+        seed=0,
+    )
+
+    assert set(results.keys()) == set(agent_configs.keys())
+    for result in results.values():
+        assert result["average_rewards"].shape == (5,)
+        assert result["optimal_action_percentage"].shape == (5,)

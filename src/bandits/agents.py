@@ -112,3 +112,71 @@ class UCBAgent:
         self.q_estimates.fill(self.initial_value)
         self.action_counts.fill(0)
         self.time_step = 0
+
+
+class GradientBanditAgent:
+    """Gradient bandit agent with optional average-reward baseline."""
+
+    def __init__(
+        self,
+        n_actions: int = 10,
+        alpha: float = 0.1,
+        use_baseline: bool = True,
+        seed: int | None = None,
+    ) -> None:
+        if n_actions <= 0:
+            raise ValueError("n_actions must be positive.")
+        if alpha <= 0:
+            raise ValueError("alpha must be positive.")
+
+        self.n_actions = n_actions
+        self.alpha = alpha
+        self.use_baseline = use_baseline
+        self.rng = np.random.default_rng(seed)
+
+        self.preferences = np.zeros(self.n_actions, dtype=float)
+        self.action_probabilities = np.full(
+            self.n_actions,
+            1.0 / self.n_actions,
+            dtype=float,
+        )
+        self.average_reward = 0.0
+        self.time_step = 0
+
+    def _softmax(self) -> np.ndarray:
+        """Return numerically stable softmax action probabilities."""
+        exp_preferences = np.exp(self.preferences - np.max(self.preferences))
+        probabilities = exp_preferences / np.sum(exp_preferences)
+        return probabilities
+
+    def select_action(self) -> int:
+        """Sample an action from the current softmax policy."""
+        self.action_probabilities = self._softmax()
+        action = self.rng.choice(self.n_actions, p=self.action_probabilities)
+        return int(action)
+
+    def update(self, action: int, reward: float) -> None:
+        """Update preferences using the gradient bandit rule."""
+        if not 0 <= action < self.n_actions:
+            raise ValueError(
+                f"Action must be between 0 and {self.n_actions - 1}, got {action}."
+            )
+
+        self.time_step += 1
+        baseline = self.average_reward if self.use_baseline else 0.0
+        reward_difference = reward - baseline
+        old_probabilities = self.action_probabilities.copy()
+
+        self.preferences -= self.alpha * reward_difference * old_probabilities
+        self.preferences[action] += self.alpha * reward_difference
+
+        self.average_reward = self.average_reward + (
+            reward - self.average_reward
+        ) / self.time_step
+
+    def reset(self) -> None:
+        """Reset preferences, policy, and reward statistics for a fresh run."""
+        self.preferences.fill(0.0)
+        self.action_probabilities.fill(1.0 / self.n_actions)
+        self.average_reward = 0.0
+        self.time_step = 0

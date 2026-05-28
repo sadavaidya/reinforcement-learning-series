@@ -1,6 +1,6 @@
 """Bandit components for the reinforcement learning series."""
 
-from .agents import EpsilonGreedyAgent, UCBAgent
+from .agents import EpsilonGreedyAgent, GradientBanditAgent, UCBAgent
 from .environment import TenArmedBandit
 from .experiments import (
     run_multiple_agent_experiments,
@@ -13,6 +13,7 @@ __all__ = [
     "TenArmedBandit",
     "EpsilonGreedyAgent",
     "UCBAgent",
+    "GradientBanditAgent",
     "run_single_agent_experiment",
     "run_single_experiment",
     "run_multiple_agent_experiments",
