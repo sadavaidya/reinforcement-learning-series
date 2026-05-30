@@ -7,6 +7,7 @@ The project motivation is straightforward: reinforcement learning concepts becom
 Current roadmap at a high level:
 - Week 1: epsilon-greedy action selection in the 10-armed bandit problem
 - Week 2: optimistic initial values and Upper-Confidence-Bound (UCB) action selection
+- Week 3: gradient bandit algorithms with and without a reward baseline
 - Future weeks: additional chapters and algorithms will be added incrementally
 
 Current repository structure:
@@ -18,10 +19,12 @@ reinforcement-learning-from-scratch/
 |-- .gitignore
 |-- notes/
 |   |-- week_01_epsilon_greedy_bandits.md
-|   `-- week_02_optimistic_initial_values_ucb.md
+|   |-- week_02_optimistic_initial_values_ucb.md
+|   `-- week_03_gradient_bandits.md
 |-- notebooks/
 |   |-- week_01_epsilon_greedy_bandits.ipynb
-|   `-- week_02_optimistic_initial_values_ucb.ipynb
+|   |-- week_02_optimistic_initial_values_ucb.ipynb
+|   `-- week_03_gradient_bandits.ipynb
 |-- src/
 |   |-- __init__.py
 |   |-- bandits/
@@ -41,6 +44,9 @@ reinforcement-learning-from-scratch/
 |       |-- optimistic_initial_values_optimal_action.png
 |       |-- ucb_average_reward.png
 |       `-- ucb_optimal_action.png
+|   `-- week_03/
+|       |-- gradient_bandit_average_reward.png
+|       `-- gradient_bandit_optimal_action.png
 `-- tests/
     `-- test_bandits.py
 ```
@@ -91,6 +97,30 @@ In the optimistic-initial-values comparison, the greedy agent explores aggressiv
 In the UCB comparison, the curves are usually smoother after the initial warm-up because exploration is tied to uncertainty instead of random action picks. That makes UCB more deliberate than epsilon-greedy, especially once the agent has enough data to start favoring promising but under-sampled actions.
 
 Key insight: optimistic initial values encourage early exploration by making untried actions look attractive, while UCB explores more deliberately by combining estimated value with an uncertainty bonus.
+
+## Week 3 - Gradient Bandit Algorithms
+
+This week implements gradient bandit algorithms, moving from action-value methods toward direct policy learning.
+
+Concepts:
+- Action preferences `H(a)`
+- Softmax action selection
+- Gradient bandit preference updates
+- Reward baseline
+- Comparison with and without baseline
+
+Experiment:
+- 10-armed bandit testbed
+- True action values shifted upward with mean `4.0`
+- Compare gradient bandits with and without reward baseline
+- Compare learning rates `alpha = 0.1` and `alpha = 0.4`
+
+Results:
+
+![Gradient Bandit - Average Reward](results/week_03/gradient_bandit_average_reward.png)
+![Gradient Bandit - Optimal Action](results/week_03/gradient_bandit_optimal_action.png)
+
+Key insight: gradient bandits do not directly estimate action values. They learn action preferences and use softmax to convert those preferences into action probabilities. The reward baseline improves learning by helping the agent judge whether a reward was better or worse than expected.
 
 Reference:
 - Richard S. Sutton and Andrew G. Barto, *Reinforcement Learning: An Introduction*.
