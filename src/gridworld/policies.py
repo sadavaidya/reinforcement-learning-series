@@ -30,6 +30,12 @@ class RandomPolicy:
         del state
         return str(self.rng.choice(self.actions))
 
+    def get_action_probabilities(self, state: tuple[int, int]) -> dict[str, float]:
+        """Return uniform probability over all actions."""
+        del state
+        prob = 1.0 / len(self.actions)
+        return {action: prob for action in self.actions}
+
 
 class GoalDirectedPolicy:
     """Heuristic policy that tends to reduce distance to the goal."""
@@ -100,6 +106,42 @@ class GoalDirectedPolicy:
 
         return str(self.rng.choice(self.actions))
 
+    def get_action_probabilities(self, state: tuple[int, int]) -> dict[str, float]:
+        """Return expected probability for each action under this policy."""
+        # Random component: exploration_prob spread uniformly over all actions.
+        probs = {action: self.exploration_prob / len(self.actions) for action in self.actions}
+
+        # Goal-directed component: (1 - exploration_prob) assigned to best actions.
+        current_distance = _manhattan_distance(state, self.goal_state)
+        scored: list[tuple[str, int, bool]] = []
+        for action in self.actions:
+            next_state = self._candidate_state(state, action)
+            is_valid = self._is_valid_state(next_state)
+            distance = (
+                _manhattan_distance(next_state, self.goal_state)
+                if is_valid
+                else current_distance + 1000
+            )
+            scored.append((action, distance, is_valid))
+
+        valid = [item for item in scored if item[2]]
+        if valid:
+            best_dist = min(item[1] for item in valid)
+            best_actions = [
+                item[0] for item in valid
+                if item[1] == best_dist and item[1] <= current_distance
+            ]
+            if not best_actions:
+                best_actions = [item[0] for item in valid if item[1] == best_dist]
+        else:
+            best_actions = list(self.actions)
+
+        goal_prob_each = (1.0 - self.exploration_prob) / len(best_actions)
+        for action in best_actions:
+            probs[action] += goal_prob_each
+
+        return probs
+
 
 class BadPolicy:
     """Biased policy that often picks poor directions for this grid."""
@@ -125,3 +167,14 @@ class BadPolicy:
         if self.rng.random() < self.bad_action_prob:
             return str(self.rng.choice(self.preferred_bad_actions))
         return str(self.rng.choice(self.actions))
+
+    def get_action_probabilities(self, state: tuple[int, int]) -> dict[str, float]:
+        """Return expected probability for each action under this policy."""
+        del state
+        # Random component: (1 - bad_action_prob) spread uniformly over all actions.
+        probs = {action: (1.0 - self.bad_action_prob) / len(self.actions) for action in self.actions}
+        # Bad-action component: bad_action_prob split equally among preferred bad actions.
+        bad_prob_each = self.bad_action_prob / len(self.preferred_bad_actions)
+        for action in self.preferred_bad_actions:
+            probs[action] += bad_prob_each
+        return probs
