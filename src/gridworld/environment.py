@@ -83,44 +83,54 @@ class GridworldMDP:
         """Return the available action names."""
         return self.actions.copy()
 
-    def step(
+    def get_transition(
         self,
+        state: tuple[int, int],
         action: str,
     ) -> tuple[tuple[int, int], float, bool, dict[str, bool]]:
-        """Apply one environment transition from the current state."""
+        """Compute a hypothetical transition without modifying current_state."""
         if action not in self.ACTION_DELTAS:
             raise ValueError(f"Unknown action: {action}")
 
-        if self.is_terminal(self.current_state):
-            return self.current_state, 0.0, True, {"invalid_move": False}
+        if self.is_terminal(state):
+            return state, 0.0, True, {"invalid_move": False}
 
         delta_row, delta_col = self.ACTION_DELTAS[action]
-        row, col = self.current_state
+        row, col = state
         proposed_state = (row + delta_row, col + delta_col)
 
         if not self.is_valid_state(proposed_state):
             return (
-                self.current_state,
+                state,
                 float(self.invalid_move_reward),
                 False,
                 {"invalid_move": True},
             )
 
-        self.current_state = proposed_state
-        if self.is_terminal(self.current_state):
+        next_state = proposed_state
+        if self.is_terminal(next_state):
             return (
-                self.current_state,
+                next_state,
                 float(self.goal_reward),
                 True,
                 {"invalid_move": False},
             )
 
         return (
-            self.current_state,
+            next_state,
             float(self.step_reward),
             False,
             {"invalid_move": False},
         )
+
+    def step(
+        self,
+        action: str,
+    ) -> tuple[tuple[int, int], float, bool, dict[str, bool]]:
+        """Apply one environment transition from the current state."""
+        next_state, reward, done, info = self.get_transition(self.current_state, action)
+        self.current_state = next_state
+        return next_state, reward, done, info
 
     def render(self) -> str:
         """Return a simple text rendering of the grid."""

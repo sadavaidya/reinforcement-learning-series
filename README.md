@@ -9,6 +9,7 @@ Current roadmap at a high level:
 - Week 2: optimistic initial values and Upper-Confidence-Bound (UCB) action selection
 - Week 3: gradient bandit algorithms with and without a reward baseline
 - Week 4: finite Markov Decision Processes with a Gridworld policy comparison
+- Week 5: value functions and iterative policy evaluation in Gridworld
 - Future weeks: additional chapters and algorithms will be added incrementally
 
 Current repository structure:
@@ -22,12 +23,14 @@ reinforcement-learning-from-scratch/
 |   |-- week_01_epsilon_greedy_bandits.md
 |   |-- week_02_optimistic_initial_values_ucb.md
 |   |-- week_03_gradient_bandits.md
-|   `-- week_04_finite_markov_decision_processes.md
+|   |-- week_04_finite_markov_decision_processes.md
+|   `-- week_05_value_functions_policy_evaluation.md
 |-- notebooks/
 |   |-- week_01_epsilon_greedy_bandits.ipynb
 |   |-- week_02_optimistic_initial_values_ucb.ipynb
 |   |-- week_03_gradient_bandits.ipynb
-|   `-- week_04_gridworld_mdp_policy_comparison.ipynb
+|   |-- week_04_gridworld_mdp_policy_comparison.ipynb
+|   `-- week_05_value_functions_policy_evaluation.ipynb
 |-- src/
 |   |-- __init__.py
 |   |-- bandits/
@@ -39,27 +42,21 @@ reinforcement-learning-from-scratch/
 |   |   |-- __init__.py
 |   |   |-- environment.py
 |   |   |-- policies.py
-|   |   `-- experiments.py
+|   |   |-- experiments.py
+|   |   `-- policy_evaluation.py
 |   `-- utils/
 |       |-- __init__.py
 |       `-- plotting.py
 |-- results/
 |   |-- week_01/
-|   |   |-- average_reward.png
-|   |   `-- optimal_action_percentage.png
-|   `-- week_02/
-|       |-- optimistic_initial_values_average_reward.png
-|       |-- optimistic_initial_values_optimal_action.png
-|       |-- ucb_average_reward.png
-|       `-- ucb_optimal_action.png
+|   |-- week_02/
 |   |-- week_03/
-|       |-- gradient_bandit_average_reward.png
-|       `-- gradient_bandit_optimal_action.png
-|   `-- week_04/
-|       |-- average_return_by_policy.png
-|       |-- average_episode_length_by_policy.png
-|       |-- success_rate_by_policy.png
-|       `-- state_visitation_heatmap.png
+|   |-- week_04/
+|   `-- week_05/
+|       |-- random_policy_value_function.png
+|       |-- goal_directed_policy_value_function.png
+|       |-- value_convergence.png
+|       `-- policy_value_comparison.png
 `-- tests/
     |-- test_bandits.py
     `-- test_gridworld.py
@@ -161,6 +158,35 @@ Results:
 ![State Visitation Heatmap](results/week_04/state_visitation_heatmap.png)
 
 Key insight: MDPs extend bandits by introducing states and transitions. A policy is no longer just about selecting a good action overall; it must select actions based on the current state to improve long-term return.
+
+## Week 5 - Value Functions and Policy Evaluation
+
+This week builds on the Gridworld MDP from Week 4 and implements iterative policy evaluation to compute state-value functions for fixed policies.
+
+Concepts:
+- State-value function v<sub>pi</sub>(s)
+- Action-value function q<sub>pi</sub>(s, a)
+- Bellman expectation equation
+- Bellman backup
+- Iterative policy evaluation
+- Value function convergence
+
+Experiment:
+- Evaluated `RandomPolicy`, `GoalDirectedPolicy`, and `BadPolicy` in Gridworld using iterative policy evaluation
+- Computed state-value functions by applying Bellman backups until convergence (gamma=0.9, theta=1e-4)
+- Visualised representative Gridworld value-function heatmaps and compared all three policies numerically
+- Plotted convergence of max-delta across sweeps
+- Compared average non-terminal state values across policies
+- Traced one manual Bellman backup at the start state to illustrate the update
+
+Results:
+
+![Random Policy Value Function](results/week_05/random_policy_value_function.png)
+![Goal-Directed Policy Value Function](results/week_05/goal_directed_policy_value_function.png)
+![Policy Evaluation Convergence](results/week_05/value_convergence.png)
+![Average State Value by Policy](results/week_05/policy_value_comparison.png)
+
+Key insight: policy evaluation computes how good each state is under a fixed policy. The Bellman expectation equation makes this possible by expressing state value as expected immediate reward plus discounted next-state value. This prepares the ground for policy improvement in Week 6.
 
 Reference:
 - Richard S. Sutton and Andrew G. Barto, *Reinforcement Learning: An Introduction*.

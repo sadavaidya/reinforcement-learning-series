@@ -14,6 +14,12 @@ from src.gridworld.experiments import (
     summarize_policy_results,
 )
 from src.gridworld.policies import BadPolicy, GoalDirectedPolicy, RandomPolicy
+from src.gridworld.policy_evaluation import (
+    compute_bellman_update,
+    iterative_policy_evaluation,
+    manual_bellman_update_details,
+    values_to_grid,
+)
 
 
 def test_gridworld_initialization_and_reset():
@@ -177,3 +183,338 @@ def test_summarize_policy_results_returns_expected_metrics():
     assert np.isclose(summary["Random Policy"]["average_return"], 2.0)
     assert np.isclose(summary["Random Policy"]["average_episode_length"], 5.0)
     assert np.isclose(summary["Random Policy"]["success_rate"], 2.0 / 3.0)
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — get_transition tests
+# ---------------------------------------------------------------------------
+
+
+def test_get_transition_does_not_mutate_current_state():
+    env = GridworldMDP()
+    env.reset()
+    state_before = env.current_state
+
+    env.get_transition((0, 0), "right")
+
+    assert env.current_state == state_before
+
+
+def test_get_transition_valid_move_from_start():
+    env = GridworldMDP()
+    next_state, reward, done, info = env.get_transition((0, 0), "right")
+
+    assert next_state == (0, 1)
+    assert reward == env.step_reward
+    assert done is False
+    assert info["invalid_move"] is False
+    assert env.current_state == env.start_state  # unchanged
+
+
+def test_get_transition_wall_returns_same_state():
+    env = GridworldMDP()
+    next_state, reward, done, info = env.get_transition((0, 0), "up")
+
+    assert next_state == (0, 0)
+    assert reward == env.invalid_move_reward
+    assert done is False
+    assert info["invalid_move"] is True
+
+
+def test_get_transition_obstacle_returns_same_state():
+    env = GridworldMDP()
+    # (1,0) moving right hits obstacle (1,1)
+    next_state, reward, done, info = env.get_transition((1, 0), "right")
+
+    assert next_state == (1, 0)
+    assert reward == env.invalid_move_reward
+    assert info["invalid_move"] is True
+
+
+def test_get_transition_goal_transition():
+    env = GridworldMDP()
+    next_state, reward, done, info = env.get_transition((4, 3), "right")
+
+    assert next_state == (4, 4)
+    assert reward == env.goal_reward
+    assert done is True
+
+
+def test_step_still_mutates_current_state():
+    env = GridworldMDP()
+    env.reset()
+
+    next_state, reward, done, info = env.step("right")
+
+    assert env.current_state == (0, 1)
+    assert next_state == (0, 1)
+    assert reward == env.step_reward
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — policy probability tests
+# ---------------------------------------------------------------------------
+
+
+def test_random_policy_action_probabilities_sum_to_one():
+    policy = RandomPolicy()
+    probs = policy.get_action_probabilities((0, 0))
+
+    assert set(probs.keys()) == {"up", "down", "left", "right"}
+    assert np.isclose(sum(probs.values()), 1.0)
+    for p in probs.values():
+        assert np.isclose(p, 0.25)
+
+
+def test_goal_directed_policy_action_probabilities_sum_to_one():
+    policy = GoalDirectedPolicy(goal_state=(4, 4), exploration_prob=0.1)
+    probs = policy.get_action_probabilities((0, 0))
+
+    assert set(probs.keys()) == {"up", "down", "left", "right"}
+    assert np.isclose(sum(probs.values()), 1.0)
+    for p in probs.values():
+        assert p >= 0.0
+
+
+def test_goal_directed_policy_probabilities_all_states():
+    env = GridworldMDP()
+    policy = GoalDirectedPolicy(goal_state=env.goal_state, obstacles=env.obstacles)
+    for state in env.get_all_states():
+        if not env.is_terminal(state):
+            probs = policy.get_action_probabilities(state)
+            assert np.isclose(sum(probs.values()), 1.0), f"probs don't sum to 1 at {state}"
+
+
+def test_bad_policy_action_probabilities_sum_to_one():
+    policy = BadPolicy(bad_action_prob=0.7)
+    probs = policy.get_action_probabilities((2, 2))
+
+    assert set(probs.keys()) == {"up", "down", "left", "right"}
+    assert np.isclose(sum(probs.values()), 1.0)
+    # bad actions should have higher probability
+    assert probs["up"] > probs["down"]
+    assert probs["left"] > probs["right"]
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — Bellman update tests
+# ---------------------------------------------------------------------------
+
+
+def test_compute_bellman_update_returns_float():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    result = compute_bellman_update(env, policy, values, (0, 0), gamma=0.9)
+
+    assert isinstance(result, float)
+
+
+def test_compute_bellman_update_terminal_state_returns_zero():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    result = compute_bellman_update(env, policy, values, env.goal_state, gamma=0.9)
+
+    assert result == 0.0
+
+
+def test_compute_bellman_update_nonterminal_is_finite():
+    env = GridworldMDP()
+    policy = GoalDirectedPolicy(goal_state=env.goal_state, obstacles=env.obstacles)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    result = compute_bellman_update(env, policy, values, (0, 0), gamma=0.9)
+
+    assert np.isfinite(result)
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — iterative policy evaluation tests
+# ---------------------------------------------------------------------------
+
+GAMMA = 0.9
+THETA = 1e-3
+MAX_ITER = 100
+
+
+def test_iterative_policy_evaluation_returns_values_and_history():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+
+    values, history = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    assert isinstance(values, dict)
+    assert isinstance(history, list)
+    assert len(history) > 0
+
+
+def test_iterative_policy_evaluation_terminal_value_is_zero():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    assert values[env.goal_state] == 0.0
+
+
+def test_iterative_policy_evaluation_all_valid_states_present():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    for state in env.get_all_states():
+        assert state in values
+
+
+def test_iterative_policy_evaluation_obstacles_not_in_values():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    for obstacle in env.obstacles:
+        assert obstacle not in values
+
+
+def test_iterative_policy_evaluation_convergence():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+
+    _, history = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    # Either converged below theta or ran to max_iterations
+    assert history[-1] < THETA or len(history) == MAX_ITER
+
+
+def test_iterative_policy_evaluation_goal_directed_higher_than_random():
+    env = GridworldMDP()
+    random_policy = RandomPolicy(seed=0)
+    goal_policy = GoalDirectedPolicy(goal_state=env.goal_state, obstacles=env.obstacles, seed=0)
+
+    random_values, _ = iterative_policy_evaluation(
+        env, random_policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+    goal_values, _ = iterative_policy_evaluation(
+        env, goal_policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    random_avg = np.mean([v for s, v in random_values.items() if not env.is_terminal(s)])
+    goal_avg = np.mean([v for s, v in goal_values.items() if not env.is_terminal(s)])
+
+    assert goal_avg > random_avg
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — values_to_grid tests
+# ---------------------------------------------------------------------------
+
+
+def test_values_to_grid_returns_correct_shape():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    grid = values_to_grid(values, env)
+
+    assert grid.shape == env.grid_size
+
+
+def test_values_to_grid_obstacles_are_nan():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    grid = values_to_grid(values, env)
+
+    for obstacle in env.obstacles:
+        assert np.isnan(grid[obstacle])
+
+
+def test_values_to_grid_start_and_goal_are_finite():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values, _ = iterative_policy_evaluation(
+        env, policy, gamma=GAMMA, theta=THETA, max_iterations=MAX_ITER
+    )
+
+    grid = values_to_grid(values, env)
+
+    start_row, start_col = env.start_state
+    goal_row, goal_col = env.goal_state
+    assert np.isfinite(grid[start_row, start_col])
+    assert np.isfinite(grid[goal_row, goal_col])
+
+
+# ---------------------------------------------------------------------------
+# Week 5 — manual_bellman_update_details tests
+# ---------------------------------------------------------------------------
+
+
+def test_manual_bellman_update_details_structure():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    details = manual_bellman_update_details(env, policy, values, (0, 0), gamma=0.9)
+
+    assert "state" in details
+    assert "action_details" in details
+    assert "updated_value" in details
+    assert details["state"] == (0, 0)
+    assert len(details["action_details"]) == len(env.get_valid_actions())
+
+
+def test_manual_bellman_update_details_action_fields():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    details = manual_bellman_update_details(env, policy, values, (0, 0), gamma=0.9)
+
+    for d in details["action_details"]:
+        assert "action" in d
+        assert "probability" in d
+        assert "next_state" in d
+        assert "reward" in d
+        assert "next_state_value" in d
+        assert "contribution" in d
+
+
+def test_manual_bellman_update_details_contributions_sum_to_updated_value():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    details = manual_bellman_update_details(env, policy, values, (0, 0), gamma=0.9)
+
+    total_from_contributions = sum(d["contribution"] for d in details["action_details"])
+    assert np.isclose(total_from_contributions, details["updated_value"])
+
+
+def test_manual_bellman_update_details_terminal_state():
+    env = GridworldMDP()
+    policy = RandomPolicy(seed=0)
+    values = {s: 0.0 for s in env.get_all_states()}
+
+    details = manual_bellman_update_details(env, policy, values, env.goal_state, gamma=0.9)
+
+    assert details["action_details"] == []
+    assert details["updated_value"] == 0.0
