@@ -20,6 +20,15 @@ from src.gridworld.policy_evaluation import (
     manual_bellman_update_details,
     values_to_grid,
 )
+from src.gridworld.policy_iteration import (
+    DeterministicPolicy,
+    extract_greedy_trajectory,
+    get_policy_action_probabilities,
+    improve_policy,
+    initialize_random_deterministic_policy,
+    one_step_lookahead,
+    policy_iteration,
+)
 
 
 def test_gridworld_initialization_and_reset():
@@ -518,3 +527,129 @@ def test_manual_bellman_update_details_terminal_state():
 
     assert details["action_details"] == []
     assert details["updated_value"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Week 6 - policy iteration tests
+# ---------------------------------------------------------------------------
+
+
+def test_initialize_random_deterministic_policy_covers_valid_nonterminal_states():
+    env = GridworldMDP()
+    policy = initialize_random_deterministic_policy(env=env, seed=42)
+
+    expected_states = {state for state in env.get_all_states() if not env.is_terminal(state)}
+
+    assert isinstance(policy, dict)
+    assert set(policy.keys()) == expected_states
+    assert env.goal_state not in policy
+    for obstacle in env.obstacles:
+        assert obstacle not in policy
+    for action in policy.values():
+        assert action in env.get_valid_actions()
+
+
+def test_deterministic_policy_probabilities_are_one_hot():
+    env = GridworldMDP()
+    policy_dict = initialize_random_deterministic_policy(env=env, seed=42)
+    state = env.start_state
+
+    probabilities = get_policy_action_probabilities(policy_dict, state, env)
+    wrapped_policy = DeterministicPolicy(policy_dict, env)
+    wrapped_probabilities = wrapped_policy.get_action_probabilities(state)
+
+    assert np.isclose(sum(probabilities.values()), 1.0)
+    assert probabilities[policy_dict[state]] == 1.0
+    assert probabilities == wrapped_probabilities
+    for action, probability in probabilities.items():
+        if action != policy_dict[state]:
+            assert probability == 0.0
+
+
+def test_one_step_lookahead_returns_finite_scores_without_mutating_state():
+    env = GridworldMDP()
+    values = {state: 0.0 for state in env.get_all_states()}
+    env.current_state = (0, 1)
+
+    scores = one_step_lookahead(env=env, values=values, state=(0, 1), gamma=1.0)
+
+    assert set(scores.keys()) == set(env.get_valid_actions())
+    assert all(np.isfinite(score) for score in scores.values())
+    assert env.current_state == (0, 1)
+
+
+def test_improve_policy_returns_expected_metadata():
+    env = GridworldMDP()
+    policy = initialize_random_deterministic_policy(env=env, seed=42)
+    values, _ = iterative_policy_evaluation(
+        env=env,
+        policy=DeterministicPolicy(policy, env),
+        gamma=1.0,
+        theta=1e-3,
+        max_iterations=100,
+    )
+
+    new_policy, policy_stable, num_policy_changes = improve_policy(
+        env=env,
+        policy=policy,
+        values=values,
+        gamma=1.0,
+    )
+
+    assert isinstance(new_policy, dict)
+    assert isinstance(policy_stable, bool)
+    assert isinstance(num_policy_changes, int)
+    assert num_policy_changes >= 0
+
+
+def test_policy_iteration_returns_expected_structure_and_valid_entries():
+    env = GridworldMDP()
+    results = policy_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_policy_iterations=20,
+        max_eval_iterations=100,
+        seed=42,
+    )
+
+    assert set(results.keys()) == {
+        "final_policy",
+        "final_values",
+        "policy_changes",
+        "value_histories",
+        "num_iterations",
+        "policy_stable",
+        "initial_policy",
+    }
+    assert results["num_iterations"] > 0
+    assert isinstance(results["policy_stable"], bool)
+    assert len(results["policy_changes"]) == results["num_iterations"]
+    assert len(results["value_histories"]) == results["num_iterations"]
+
+    for action in results["final_policy"].values():
+        assert action in env.get_valid_actions()
+    assert set(results["final_values"].keys()) == set(env.get_all_states())
+
+
+def test_extract_greedy_trajectory_returns_expected_structure():
+    env = GridworldMDP()
+    results = policy_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_policy_iterations=20,
+        max_eval_iterations=100,
+        seed=42,
+    )
+
+    trajectory = extract_greedy_trajectory(
+        env=env,
+        policy=results["final_policy"],
+        max_steps=100,
+    )
+
+    assert set(trajectory.keys()) == {"states", "actions", "success", "episode_length"}
+    assert trajectory["episode_length"] <= 100
+    assert len(trajectory["states"]) >= 1
+    assert len(trajectory["actions"]) == trajectory["episode_length"]

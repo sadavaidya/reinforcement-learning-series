@@ -10,6 +10,7 @@ Current roadmap at a high level:
 - Week 3: gradient bandit algorithms with and without a reward baseline
 - Week 4: finite Markov Decision Processes with a Gridworld policy comparison
 - Week 5: value functions and iterative policy evaluation in Gridworld
+- Week 6: Dynamic Programming policy iteration in Gridworld
 - Future weeks: additional chapters and algorithms will be added incrementally
 
 Current repository structure:
@@ -43,7 +44,8 @@ reinforcement-learning-from-scratch/
 |   |   |-- environment.py
 |   |   |-- policies.py
 |   |   |-- experiments.py
-|   |   `-- policy_evaluation.py
+|   |   |-- policy_evaluation.py
+|   |   `-- policy_iteration.py
 |   `-- utils/
 |       |-- __init__.py
 |       `-- plotting.py
@@ -57,6 +59,7 @@ reinforcement-learning-from-scratch/
 |       |-- goal_directed_policy_value_function.png
 |       |-- value_convergence.png
 |       `-- policy_value_comparison.png
+|   `-- week_06/
 `-- tests/
     |-- test_bandits.py
     `-- test_gridworld.py
@@ -187,6 +190,31 @@ Results:
 ![Average State Value by Policy](results/week_05/policy_value_comparison.png)
 
 Key insight: policy evaluation computes how good each state is under a fixed policy. The Bellman expectation equation makes this possible by expressing state value as expected immediate reward plus discounted next-state value. This prepares the ground for policy improvement in Week 6.
+
+## Week 6 - Dynamic Programming: Policy Iteration
+
+This week extends Week 5 by improving a deterministic Gridworld policy with Dynamic Programming.
+
+Concepts:
+- Policy evaluation
+- Policy improvement
+- One-step lookahead
+- Greedy policy improvement
+- Policy stability
+- Policy iteration
+
+Experiment:
+- Started with a random deterministic policy
+- Evaluated the policy using iterative policy evaluation
+- Improved the policy greedily using one-step lookahead
+- Repeated evaluation and improvement until the policy became stable
+- Visualized the initial policy, final policy, final value function, and policy changes over iterations
+
+Results:
+
+![Initial vs Final Policy](./results/week_06/policy_comparison.png)
+
+Key insight: policy iteration alternates between evaluating the current policy and improving it greedily using the value function. When the policy stops changing, it has reached a stable solution for the finite MDP.
 
 Reference:
 - Richard S. Sutton and Andrew G. Barto, *Reinforcement Learning: An Introduction*.
