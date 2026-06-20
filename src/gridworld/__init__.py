@@ -14,16 +14,32 @@ from .policy_evaluation import (
     manual_bellman_update_details,
     values_to_grid,
 )
+from .policy_iteration import (
+    DeterministicPolicy,
+    extract_greedy_trajectory,
+    get_policy_action_probabilities,
+    improve_policy,
+    initialize_random_deterministic_policy,
+    one_step_lookahead,
+    policy_iteration,
+)
 
 __all__ = [
     "BadPolicy",
+    "DeterministicPolicy",
     "GoalDirectedPolicy",
     "GridworldMDP",
     "RandomPolicy",
     "compute_bellman_update",
+    "extract_greedy_trajectory",
     "get_action_probabilities",
+    "get_policy_action_probabilities",
+    "improve_policy",
+    "initialize_random_deterministic_policy",
     "iterative_policy_evaluation",
     "manual_bellman_update_details",
+    "one_step_lookahead",
+    "policy_iteration",
     "run_episode",
     "run_policy_evaluation_experiment",
     "summarize_policy_results",
