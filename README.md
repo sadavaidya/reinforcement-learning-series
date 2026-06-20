@@ -25,13 +25,15 @@ reinforcement-learning-from-scratch/
 |   |-- week_02_optimistic_initial_values_ucb.md
 |   |-- week_03_gradient_bandits.md
 |   |-- week_04_finite_markov_decision_processes.md
-|   `-- week_05_value_functions_policy_evaluation.md
+|   |-- week_05_value_functions_policy_evaluation.md
+|   `-- week_06_policy_iteration.md
 |-- notebooks/
 |   |-- week_01_epsilon_greedy_bandits.ipynb
 |   |-- week_02_optimistic_initial_values_ucb.ipynb
 |   |-- week_03_gradient_bandits.ipynb
 |   |-- week_04_gridworld_mdp_policy_comparison.ipynb
-|   `-- week_05_value_functions_policy_evaluation.ipynb
+|   |-- week_05_value_functions_policy_evaluation.ipynb
+|   `-- week_06_policy_iteration.ipynb
 |-- src/
 |   |-- __init__.py
 |   |-- bandits/
