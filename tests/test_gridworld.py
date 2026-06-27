@@ -29,6 +29,11 @@ from src.gridworld.policy_iteration import (
     one_step_lookahead,
     policy_iteration,
 )
+from src.gridworld.value_iteration import (
+    compare_value_and_policy_iteration,
+    extract_greedy_policy,
+    value_iteration,
+)
 
 
 def test_gridworld_initialization_and_reset():
@@ -653,3 +658,93 @@ def test_extract_greedy_trajectory_returns_expected_structure():
     assert trajectory["episode_length"] <= 100
     assert len(trajectory["states"]) >= 1
     assert len(trajectory["actions"]) == trajectory["episode_length"]
+
+
+# ---------------------------------------------------------------------------
+# Week 7 - value iteration tests
+# ---------------------------------------------------------------------------
+
+
+def test_value_iteration_returns_values_history_and_sweeps():
+    env = GridworldMDP()
+
+    values, history, num_sweeps = value_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_iterations=200,
+    )
+
+    assert isinstance(values, dict)
+    assert isinstance(history, list)
+    assert isinstance(num_sweeps, int)
+    assert len(history) == num_sweeps
+    assert num_sweeps > 0
+    assert set(values.keys()) == set(env.get_all_states())
+
+
+def test_value_iteration_terminal_value_is_zero():
+    env = GridworldMDP()
+
+    values, _, _ = value_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_iterations=200,
+    )
+
+    assert values[env.goal_state] == 0.0
+
+
+def test_extract_greedy_policy_returns_valid_actions_for_nonterminal_states():
+    env = GridworldMDP()
+    values, _, _ = value_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_iterations=200,
+    )
+
+    policy = extract_greedy_policy(env=env, values=values, gamma=1.0)
+    expected_states = {state for state in env.get_all_states() if not env.is_terminal(state)}
+
+    assert set(policy.keys()) == expected_states
+    for action in policy.values():
+        assert action in env.get_valid_actions()
+
+
+def test_value_iteration_greedy_policy_reaches_goal_from_start():
+    env = GridworldMDP()
+    values, _, _ = value_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_iterations=200,
+    )
+    policy = extract_greedy_policy(env=env, values=values, gamma=1.0)
+
+    trajectory = extract_greedy_trajectory(env=env, policy=policy, max_steps=100)
+
+    assert trajectory["success"] is True
+    assert trajectory["states"][-1] == env.goal_state
+
+
+def test_compare_value_and_policy_iteration_reports_small_value_gap():
+    env = GridworldMDP()
+
+    results = compare_value_and_policy_iteration(
+        env=env,
+        gamma=1.0,
+        theta=1e-3,
+        max_value_iterations=200,
+        max_policy_iterations=20,
+        max_eval_iterations=200,
+        seed=42,
+    )
+
+    assert set(results.keys()) == {"value_iteration", "policy_iteration", "comparison"}
+    assert results["value_iteration"]["num_sweeps"] > 0
+    assert results["policy_iteration"]["num_iterations"] > 0
+    assert results["policy_iteration"]["num_evaluation_sweeps"] > 0
+    assert results["comparison"]["max_value_difference"] < 1e-1
+    assert results["comparison"]["policy_match_fraction"] > 0.9

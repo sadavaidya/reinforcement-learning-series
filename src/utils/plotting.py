@@ -286,6 +286,9 @@ def plot_value_function_grid(
 
 def plot_value_convergence(
     convergence_histories: dict[str, list[float]],
+    title: str = "Policy Evaluation Convergence",
+    xlabel: str = "Iteration",
+    ylabel: str = "Max Value Change (delta)",
     save_path: str | Path | None = None,
 ) -> None:
     """Plot max-delta vs iteration for one or more policy evaluation runs."""
@@ -294,11 +297,55 @@ def plot_value_convergence(
     for label, history in convergence_histories.items():
         ax.plot(range(1, len(history) + 1), history, label=label)
 
-    ax.set_title("Policy Evaluation Convergence")
-    ax.set_xlabel("Iteration")
-    ax.set_ylabel("Max Value Change (delta)")
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.legend()
     ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+
+    if save_path is not None:
+        save_path = Path(save_path)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    if matplotlib.get_backend().lower() != "agg":
+        plt.show()
+    plt.close(fig)
+
+
+def plot_iteration_comparison(
+    comparison: dict[str, float],
+    ylabel: str = "Count",
+    title: str = "Dynamic Programming Iteration Comparison",
+    save_path: str | Path | None = None,
+) -> None:
+    """Bar chart comparing one scalar metric across algorithms."""
+    labels = list(comparison.keys())
+    values = [comparison[label] for label in labels]
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    bar_colors = [colors[i % len(colors)] for i in range(len(labels))]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(labels, values, color=bar_colors)
+
+    ymax = max(values) if values else 0.0
+    padding = max(0.5, ymax * 0.1 if ymax > 0 else 0.5)
+    ax.set_ylim(0.0, ymax + padding)
+
+    for bar, value in zip(bars, values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + padding * 0.05,
+            f"{value:.0f}" if float(value).is_integer() else f"{value:.2f}",
+            ha="center",
+            va="bottom",
+        )
+
+    ax.set_title(title)
+    ax.set_xlabel("Algorithm")
+    ax.set_ylabel(ylabel)
+    ax.grid(True, axis="y", alpha=0.3)
     fig.tight_layout()
 
     if save_path is not None:

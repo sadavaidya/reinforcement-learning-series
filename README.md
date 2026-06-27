@@ -11,6 +11,7 @@ Current roadmap at a high level:
 - Week 4: finite Markov Decision Processes with a Gridworld policy comparison
 - Week 5: value functions and iterative policy evaluation in Gridworld
 - Week 6: Dynamic Programming policy iteration in Gridworld
+- Week 7: Dynamic Programming value iteration in Gridworld
 - Future weeks: additional chapters and algorithms will be added incrementally
 
 Current repository structure:
@@ -26,14 +27,16 @@ reinforcement-learning-from-scratch/
 |   |-- week_03_gradient_bandits.md
 |   |-- week_04_finite_markov_decision_processes.md
 |   |-- week_05_value_functions_policy_evaluation.md
-|   `-- week_06_policy_iteration.md
+|   |-- week_06_policy_iteration.md
+|   `-- week_07_value_iteration.md
 |-- notebooks/
 |   |-- week_01_epsilon_greedy_bandits.ipynb
 |   |-- week_02_optimistic_initial_values_ucb.ipynb
 |   |-- week_03_gradient_bandits.ipynb
 |   |-- week_04_gridworld_mdp_policy_comparison.ipynb
 |   |-- week_05_value_functions_policy_evaluation.ipynb
-|   `-- week_06_policy_iteration.ipynb
+|   |-- week_06_policy_iteration.ipynb
+|   `-- week7_value_iteration.ipynb
 |-- src/
 |   |-- __init__.py
 |   |-- bandits/
@@ -47,7 +50,8 @@ reinforcement-learning-from-scratch/
 |   |   |-- policies.py
 |   |   |-- experiments.py
 |   |   |-- policy_evaluation.py
-|   |   `-- policy_iteration.py
+|   |   |-- policy_iteration.py
+|   |   `-- value_iteration.py
 |   `-- utils/
 |       |-- __init__.py
 |       `-- plotting.py
@@ -56,12 +60,17 @@ reinforcement-learning-from-scratch/
 |   |-- week_02/
 |   |-- week_03/
 |   |-- week_04/
-|   `-- week_05/
+|   |-- week_05/
 |       |-- random_policy_value_function.png
 |       |-- goal_directed_policy_value_function.png
 |       |-- value_convergence.png
 |       `-- policy_value_comparison.png
-|   `-- week_06/
+|   |-- week_06/
+|   `-- week_07/
+|       |-- value_iteration_convergence.png
+|       |-- value_iteration_final_values.png
+|       |-- value_iteration_greedy_policy.png
+|       `-- value_vs_policy_iteration_sweeps.png
 `-- tests/
     |-- test_bandits.py
     `-- test_gridworld.py
@@ -217,6 +226,33 @@ Results:
 ![Initial vs Final Policy](./results/week_06/policy_comparison.png)
 
 Key insight: policy iteration alternates between evaluating the current policy and improving it greedily using the value function. When the policy stops changing, it has reached a stable solution for the finite MDP.
+
+## Week 7 - Dynamic Programming: Value Iteration
+
+This week keeps the same Gridworld from Weeks 4 to 6 and implements value iteration to compute the optimal value function directly.
+
+Concepts:
+- Bellman optimality equation
+- Bellman optimality backup
+- Value iteration
+- Greedy policy extraction
+- Comparison with policy iteration
+
+Experiment:
+- Ran value iteration on the existing deterministic Gridworld
+- Updated each non-terminal state with the Bellman optimality backup until convergence
+- Extracted the final greedy policy from the converged value function
+- Visualized the final value function, final greedy policy, and convergence over sweeps
+- Compared the resulting values and policy against Week 6 policy iteration
+
+Results:
+
+![Value Iteration Final Values](results/week_07/value_iteration_final_values.png)
+![Value Iteration Greedy Policy](results/week_07/value_iteration_greedy_policy.png)
+![Value Iteration Convergence](results/week_07/value_iteration_convergence.png)
+![Value Iteration vs Policy Iteration](results/week_07/value_vs_policy_iteration_sweeps.png)
+
+Key insight: value iteration merges evaluation and improvement into a single repeated optimality update. In this Gridworld, it converges to the same optimal value function and greedy policy as policy iteration, while using a different computational pattern.
 
 Reference:
 - Richard S. Sutton and Andrew G. Barto, *Reinforcement Learning: An Introduction*.
