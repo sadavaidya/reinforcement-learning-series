@@ -23,6 +23,11 @@ from .policy_iteration import (
     one_step_lookahead,
     policy_iteration,
 )
+from .value_iteration import (
+    compare_value_and_policy_iteration,
+    extract_greedy_policy,
+    value_iteration,
+)
 
 __all__ = [
     "BadPolicy",
@@ -30,7 +35,9 @@ __all__ = [
     "GoalDirectedPolicy",
     "GridworldMDP",
     "RandomPolicy",
+    "compare_value_and_policy_iteration",
     "compute_bellman_update",
+    "extract_greedy_policy",
     "extract_greedy_trajectory",
     "get_action_probabilities",
     "get_policy_action_probabilities",
@@ -43,5 +50,6 @@ __all__ = [
     "run_episode",
     "run_policy_evaluation_experiment",
     "summarize_policy_results",
+    "value_iteration",
     "values_to_grid",
 ]
