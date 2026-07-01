@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 
 class GridworldMDP:
     """A simple episodic Gridworld Markov Decision Process."""
@@ -58,6 +60,14 @@ class GridworldMDP:
         self.current_state = self.start_state
         return self.current_state
 
+    def reset_to_state(self, state: tuple[int, int]) -> tuple[int, int]:
+        """Reset the environment to a specific valid non-obstacle state."""
+        if not self.is_valid_state(state):
+            raise ValueError("state must be a valid non-obstacle state.")
+
+        self.current_state = state
+        return self.current_state
+
     def is_terminal(self, state: tuple[int, int]) -> bool:
         """Return True when the state is terminal."""
         return state == self.goal_state
@@ -78,6 +88,23 @@ class GridworldMDP:
                     states.append(state)
 
         return states
+
+    def get_non_terminal_states(self) -> list[tuple[int, int]]:
+        """Return all valid states except the terminal goal state."""
+        return [state for state in self.get_all_states() if not self.is_terminal(state)]
+
+    def sample_non_terminal_state(
+        self,
+        rng: np.random.Generator | None = None,
+    ) -> tuple[int, int]:
+        """Sample one valid non-terminal state uniformly at random."""
+        non_terminal_states = self.get_non_terminal_states()
+        if not non_terminal_states:
+            raise ValueError("environment must contain at least one non-terminal state.")
+
+        rng = np.random.default_rng() if rng is None else rng
+        state_index = int(rng.integers(0, len(non_terminal_states)))
+        return non_terminal_states[state_index]
 
     def get_valid_actions(self) -> list[str]:
         """Return the available action names."""

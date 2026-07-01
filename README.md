@@ -12,6 +12,7 @@ Current roadmap at a high level:
 - Week 5: value functions and iterative policy evaluation in Gridworld
 - Week 6: Dynamic Programming policy iteration in Gridworld
 - Week 7: Dynamic Programming value iteration in Gridworld
+- Week 8: Monte Carlo prediction with First-Visit Monte Carlo in Gridworld
 - Future weeks: additional chapters and algorithms will be added incrementally
 
 Current repository structure:
@@ -28,7 +29,8 @@ reinforcement-learning-from-scratch/
 |   |-- week_04_finite_markov_decision_processes.md
 |   |-- week_05_value_functions_policy_evaluation.md
 |   |-- week_06_policy_iteration.md
-|   `-- week_07_value_iteration.md
+|   |-- week_07_value_iteration.md
+|   `-- week_08_first_visit_monte_carlo_prediction.md
 |-- notebooks/
 |   |-- week_01_epsilon_greedy_bandits.ipynb
 |   |-- week_02_optimistic_initial_values_ucb.ipynb
@@ -36,7 +38,8 @@ reinforcement-learning-from-scratch/
 |   |-- week_04_gridworld_mdp_policy_comparison.ipynb
 |   |-- week_05_value_functions_policy_evaluation.ipynb
 |   |-- week_06_policy_iteration.ipynb
-|   `-- week7_value_iteration.ipynb
+|   |-- week_07_value_iteration.ipynb
+|   `-- week_08_first_visit_monte_carlo_prediction.ipynb
 |-- src/
 |   |-- __init__.py
 |   |-- bandits/
@@ -52,6 +55,7 @@ reinforcement-learning-from-scratch/
 |   |   |-- policy_evaluation.py
 |   |   |-- policy_iteration.py
 |   |   `-- value_iteration.py
+|   |-- monte_carlo.py
 |   `-- utils/
 |       |-- __init__.py
 |       `-- plotting.py
@@ -66,14 +70,20 @@ reinforcement-learning-from-scratch/
 |       |-- value_convergence.png
 |       `-- policy_value_comparison.png
 |   |-- week_06/
-|   `-- week_07/
+|   |-- week_07/
 |       |-- value_iteration_convergence.png
 |       |-- value_iteration_final_values.png
 |       |-- value_iteration_greedy_policy.png
 |       `-- value_vs_policy_iteration_sweeps.png
+|   `-- week_08/
+|       |-- dp_vs_mc_values.png
+|       |-- mc_error_over_episodes.png
+|       |-- mc_value_estimates.png
+|       `-- sample_episode_path.png
 `-- tests/
     |-- test_bandits.py
-    `-- test_gridworld.py
+    |-- test_gridworld.py
+    `-- test_monte_carlo.py
 ```
 
 ## Week 1
@@ -253,6 +263,34 @@ Results:
 ![Value Iteration vs Policy Iteration](results/week_07/value_vs_policy_iteration_sweeps.png)
 
 Key insight: value iteration merges evaluation and improvement into a single repeated optimality update. In this Gridworld, it converges to the same optimal value function and greedy policy as policy iteration, while using a different computational pattern.
+
+## Week 8 - Monte Carlo Methods: First-Visit Prediction
+
+This week shifts from model-based Dynamic Programming to model-free prediction by estimating state values from sampled episodes.
+
+Concepts:
+- Episodes and returns
+- First-Visit Monte Carlo prediction
+- First-Visit vs Every-Visit Monte Carlo
+- Model-free prediction
+- Comparison with Dynamic Programming policy evaluation
+
+Experiment:
+- Reused the existing Gridworld as an interactive environment for episode sampling
+- Generated episodes under a fixed `GoalDirectedPolicy`
+- Computed returns backward for each sampled episode
+- Updated `V(s)` only on the first visit to each state per episode
+- Compared the final Monte Carlo estimate against Week 5 iterative policy evaluation
+- Tracked mean absolute error over the number of sampled episodes
+
+Results:
+
+![First-Visit Monte Carlo Value Estimates](results/week_08/mc_value_estimates.png)
+![Monte Carlo vs Dynamic Programming](results/week_08/dp_vs_mc_values.png)
+![Monte Carlo Error over Episodes](results/week_08/mc_error_over_episodes.png)
+![Sample Episode Path](results/week_08/sample_episode_path.png)
+
+Key insight: First-Visit Monte Carlo estimates v<sub>pi</sub>(s) without using the environment model. Instead of Bellman expectation backups, it averages complete sampled returns after first visits to each state. With enough episodes, the MC estimates move close to the Dynamic Programming reference values for the same fixed policy.
 
 Reference:
 - Richard S. Sutton and Andrew G. Barto, *Reinforcement Learning: An Introduction*.
